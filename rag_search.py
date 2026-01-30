@@ -1,74 +1,47 @@
 # rag_search.py
-from dotenv import load_dotenv
+import os
+from sqlalchemy import create_engine, text
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain_openai import OpenAIEmbeddings
-from langchain_qdrant import QdrantVectorStore
-from qdrant_client import QdrantClient
-
+from dotenv import load_dotenv
 
 load_dotenv()
 
 # -----------------------------
-# Embeddings
+# Database (Cloud SQL)
 # -----------------------------
-embedding_model = OpenAIEmbeddings(
-    model="text-embedding-3-large"
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_engine(DATABASE_URL)
 
 # -----------------------------
-# Qdrant Connection
+# Ollama Embeddings
 # -----------------------------
-
-vector_db = QdrantVectorStore.from_existing_collection(
-    url="http://localhost:6333",
-    collection_name="Easy Stones",
-    embedding=embedding_model,
+embedding_model = OllamaEmbeddings(
+    model="nomic-embed-text"
 )
 
 # -----------------------------
 # RAG Search
 # -----------------------------
-def rag_search(query: str, owner: str | None = None, k: int = 3) -> str:
-    """
-    Semantic search over sales data.
-
-    owner: optional dataset owner (e.g. 'alberts', 'prudhvis', 'jessica')
-    """
-
+def rag_search(query: str, k: int = 5) -> str:
     print(f"\n🔍 Query: {query}")
-    if owner:
-        print(f"👤 Owner filter: {owner}")
 
-    search_kwargs = {}
+    query_embedding = embedding_model.embed_query(query)
 
-    # 👇 THIS IS WHERE THE OWNER LOGIC LIVES
-    if owner:
-        search_kwargs["filter"] = {
-            "must": [
-                {
-                    "key": "owner",
-                    "match": {"value": owner.lower()}
-                }
-            ]
-        }
+    sql = text("""
+        SELECT content
+        FROM sales_embeddings
+        ORDER BY embedding <-> :embedding
+        LIMIT :k
+    """)
 
-    results = vector_db.similarity_search(
-        query,
-        k=k,
-        **search_kwargs
-    )
+    with engine.connect() as conn:
+        rows = conn.execute(
+            sql,
+            {"embedding": query_embedding, "k": k}
+        ).fetchall()
 
-    print(f"📄 Results found: {len(results)}")
+    if not rows:
+        return "No relevant sales data found."
 
-    if not results:
-        return "No relevant historical data found."
-
-    formatted = []
-    for i, doc in enumerate(results, 1):
-        source = doc.metadata.get("source_file", "unknown")
-        owner_meta = doc.metadata.get("owner", "unknown")
-        formatted.append(
-            f"[Result {i} | Owner: {owner_meta} | Source: {source}]\n"
-            f"{doc.page_content}"
-        )
-
-    return "\n\n".join(formatted)
+    return "\n\n".join(row[0] for row in rows)

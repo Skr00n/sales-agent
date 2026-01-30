@@ -1,0 +1,12 @@
+crewai
+gradio
+python-dotenv
+sqlalchemy
+psycopg2-binary
+langchain
+langchain-openai
+openai
+pgvector
+fastapi
+uvicorn
+pydantic
