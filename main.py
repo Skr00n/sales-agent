@@ -21,15 +21,15 @@ gr.close_all()
 # -----------------------------
 # LLM (Ollama)
 # -----------------------------
-#llm = LLM(
-#    model="ollama/llama3",
-#    temperature=0.2,
-#    base_url="http://localhost:11434"
-#)
 llm = LLM(
-    model="gpt-4o-mini",
-    temperature=0.2
+    model="ollama/llama3",
+    temperature=0.2,
+    base_url="http://localhost:11434"
 )
+#llm = LLM(
+#    model="gpt-4o-mini",
+#    temperature=0.2
+#)
 
 sales_agent = Agent(
     role="Sales Intelligence Agent",

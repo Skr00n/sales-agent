@@ -12,8 +12,8 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 
-#embedder = OllamaEmbeddings(model="nomic-embed-text")
-embedder = OpenAIEmbeddings(model="text-embedding-3-small")
+embedder = OllamaEmbeddings(model="nomic-embed-text")
+#embedder = OpenAIEmbeddings(model="text-embedding-3-small")
 
 
 def rag_search(query: str, k: int = 3) -> str:
